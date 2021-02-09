@@ -1,0 +1,14 @@
+{
+  "name": "gitlab-webhook-for-chat",
+  "version": "1.0.0",
+  "description": "Web hooks proxy for Synology Chat",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vanderlaan/gitlab-webhooks": "file:third-party/gitlab-webhooks"
+  }
+}

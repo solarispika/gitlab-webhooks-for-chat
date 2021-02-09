@@ -1,0 +1,3 @@
+[submodule "third-party/gitlab-webhooks"]
+	path = third-party/gitlab-webhooks
+	url = https://github.com/bvanderlaan/gitlab-webhooks.git
