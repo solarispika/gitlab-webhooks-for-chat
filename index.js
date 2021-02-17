@@ -1,15 +1,24 @@
 let http=require('http')
 let https=require('https')
+
+const required_env = [ 'GITLAB_SECRET', 'CHAT_WEBHOOK' ]
+if (!required_env.every(e => Object.keys(process.env).includes(e))) {
+  console.log('The following environment variables are required:', required_env.join());
+  process.exit(1)
+}
+
 const WebhooksApi = require('@vanderlaan/gitlab-webhooks')
 const webhooks = new WebhooksApi({
-  secret: 'mysecret'
+  secret: process.env.GITLAB_SECRET
 })
+
+const chat_url = new URL(process.env.CHAT_WEBHOOK)
 
 function send_hook(data)
 {
   const options = {
-    hostname: 'chat.synology.com',
-    path: '/webapi/entry.cgi?api=SYNO.Chat.External&method=incoming&version=2&token=%22A33vUQlfN4ETsuJonT7pVsYxiDbhPWVnCG078pHQ1JGEdSo8zKqWuAkQ3JzTT2LQ%22',
+    hostname: chat_url.hostname,
+    path: `${chat_url.pathname}${chat_url.search}`,
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
