@@ -76,5 +76,65 @@ webhooks.on('Tag Push Hook', ({id, name, payload}) => {
   req.end();
 })
 
+/**
+ * Returns a number whose value is limited to the given range.
+ *
+ * Example: limit the output of this computation to between 0 and 255
+ * (x * 255).clamp(0, 255)
+ *
+ * @param {Number} min The lower boundary of the output range
+ * @param {Number} max The upper boundary of the output range
+ * @returns A number in the range [min, max]
+ * @type Number
+ */
+Number.prototype.clamp = function(min, max) {
+  return Math.min(Math.max(this, min), max);
+};
+
+webhooks.on('Pipeline Hook', ({id, name, payload}) => {
+  const {object_attributes: {
+    id: pipeline_id, detailed_status, duration: dur_in_seconds, ref
+  }, user: { name: username, username: user_id }, project: { web_url, namespace, name: project_name }} = payload
+  const pipeline_url = `${web_url}/-/pipelines/${pipeline_id}`
+  const duration = seconds => new Date(seconds* 1000).toISOString().substr(14, 5)
+  const pipeline_status = `Pipeline #${pipeline_id} has ${detailed_status} in ${duration(dur_in_seconds)}`
+  const branch_name = ref.split('/').pop()
+  const branch_url  = `${web_url}/commits/${branch_name}`
+  const space_padding = size => Array(size).fill(' ').join('')
+  const padding = (str, width) => space_padding((width - str.length).clamp(0, width))
+  const msgs = [
+    `${username} (${user_id})`,
+    `<${pipeline_url}|${pipeline_status}>`,
+    `Branch          Commit`,
+    `<${branch_url}|${branch_name}>${padding(branch_name, 16)}<${payload.commit.url}|${payload.commit.title.replace(/[<>]/g, '')}>`
+  ].map(m => `> ${m}`).join('\n')
+  const data = `payload={"text": "${msgs}"}`
+
+  const options = {
+    hostname: 'chat.synology.com',
+    path: '/webapi/entry.cgi?api=SYNO.Chat.External&method=incoming&version=2&token=%22A33vUQlfN4ETsuJonT7pVsYxiDbhPWVnCG078pHQ1JGEdSo8zKqWuAkQ3JzTT2LQ%22',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': Buffer.byteLength(data)
+    }
+  };
+  const req = https.request(options, (res) => {
+    console.log(`STATUS: ${res.statusCode}`);
+    console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+    res.setEncoding('utf8');
+    res.on('data', (chunk) => {
+      console.log(`BODY: ${chunk}`);
+    });
+  });
+  req.on('error', (e) => {
+    console.error(`problem with request: ${e.message}`);
+  });
+
+  // Write data to request body
+  req.write(data);
+  req.end();
+});
+
 http.createServer(webhooks.middleware).listen(3000)
 // can now receive webhook events at port 3000
