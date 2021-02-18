@@ -82,10 +82,29 @@ Number.prototype.clamp = function(min, max) {
   return Math.min(Math.max(this, min), max);
 };
 
+function target_status(status)
+{
+  switch (status) {
+    case 'pending':
+    case 'running':
+    case 'skipped':
+    case 'canceled':
+    case 'unknown':
+    case 'passed':
+      return false
+    case 'failed':
+      return true
+  }
+  return false
+}
+
 webhooks.on('Pipeline Hook', ({id, name, payload}) => {
   const {object_attributes: {
     id: pipeline_id, detailed_status, duration: dur_in_seconds, ref
   }, user: { name: username, username: user_id }, project: { web_url, namespace, name: project_name }} = payload
+  if (!target_status(detailed_status)) {
+    return
+  }
   const pipeline_url = `${web_url}/-/pipelines/${pipeline_id}`
   const duration = seconds => new Date(seconds* 1000).toISOString().substr(14, 5)
   const pipeline_status = `Pipeline #${pipeline_id} has ${detailed_status} in ${duration(dur_in_seconds)}`
